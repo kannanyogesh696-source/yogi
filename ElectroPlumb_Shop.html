@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ElectroPlumb Shop</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f6fa; --surface: #ffffff; --surface2: #f1f3f8;
+    --border: #e2e6ed; --border2: #cbd1db;
+    --text: #1a1f2e; --text2: #5a6478; --text3: #8b93a5;
+    --blue: #1a6fb5; --blue-bg: #e6f1fb; --blue-txt: #0c447c;
+    --amber: #c07b2a; --amber-bg: #faeeda; --amber-txt: #633806;
+    --green: #3b7d1e; --green-bg: #eaf3de; --green-txt: #27500a;
+    --red: #c0392b; --red-bg: #fcebeb; --red-txt: #791f1f;
+    --radius: 10px; --radius-sm: 7px;
+    --shadow: 0 1px 4px rgba(0,0,0,.07);
+  }
+  body { font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* HEADER */
+  header { background: #0d1b2e; padding: 0 1.75rem; display: flex; align-items: center; justify-content: space-between; height: 58px; position: sticky; top: 0; z-index: 50; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg,#1a6fb5,#c07b2a); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; flex-shrink: 0; }
+  .logo-text { color: #fff; font-weight: 600; font-size: 16px; line-height: 1.2; }
+  .logo-sub { color: #7a8fa8; font-size: 11px; }
+  nav { display: flex; gap: 4px; }
+  .nav-btn { background: transparent; color: #7a8fa8; border: none; padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: background .15s, color .15s; }
+  .nav-btn:hover { background: rgba(255,255,255,.08); color: #c8d4e3; }
+  .nav-btn.active { background: var(--blue); color: #fff; }
+  .export-btn { background: var(--amber); color: #fff; border: none; padding: 8px 15px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: opacity .15s; }
+  .export-btn:hover { opacity: .87; }
+
+  /* LAYOUT */
+  main { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.75rem; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px; }
+  .page-title { font-size: 20px; font-weight: 700; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 12px; margin-bottom: 1.25rem; }
+  .stat-card { background: var(--surface); border-radius: var(--radius); padding: 1.1rem 1.25rem; border-left: 4px solid var(--accent,#1a6fb5); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat-val { font-size: 27px; font-weight: 700; line-height: 1.1; }
+  .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-top: 4px; }
+  .stat-icon { float: right; font-size: 22px; opacity: .55; }
+
+  /* DASHBOARD 2-COL */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width:700px){ .dash-grid { grid-template-columns: 1fr; } }
+  .list-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: default; }
+  .list-item:last-child { border-bottom: none; }
+  .list-item-name { font-size: 13px; font-weight: 500; }
+  .list-item-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .list-item-right { text-align: right; }
+  .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 13px; }
+  .empty i { font-size: 30px; display: block; margin-bottom: 8px; }
+
+  /* CAT CARDS */
+  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .cat-card { border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .cat-head { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+  .cat-nums { display: flex; gap: 24px; }
+  .cat-num-val { font-size: 22px; font-weight: 700; }
+  .cat-num-label { font-size: 11px; opacity: .75; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-elec { background: var(--blue-bg); color: var(--blue-txt); }
+  .badge-plumb { background: var(--amber-bg); color: var(--amber-txt); }
+  .badge-paid { background: var(--green-bg); color: var(--green-txt); }
+  .badge-pending { background: var(--amber-bg); color: var(--amber-txt); }
+  .badge-cancelled { background: var(--red-bg); color: var(--red-txt); }
+  .badge-ok { background: var(--green-bg); color: var(--green-txt); }
+  .badge-low { background: var(--red-bg); color: var(--red-txt); font-size: 10px; padding: 2px 7px; margin-left: 5px; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .search-input { padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; outline: none; min-width: 200px; font-family: inherit; }
+  .search-input:focus { border-color: var(--blue); }
+  .filter-btn { background: var(--surface); color: var(--text2); border: 1px solid var(--border2); padding: 7px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all .12s; }
+  .filter-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .filter-btn.active-elec { background: var(--blue-bg); border-color: var(--blue); color: var(--blue-txt); }
+  .filter-btn.active-plumb { background: var(--amber-bg); border-color: var(--amber); color: var(--amber-txt); }
+  .filter-btn.active-all { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: var(--radius-sm); border: 1px solid; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: opacity .12s, transform .1s; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+  .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border2); }
+  .btn-ghost:hover { background: var(--surface2); }
+  .icon-btn { background: transparent; border: none; cursor: pointer; padding: 5px 7px; border-radius: 5px; font-size: 15px; transition: background .12s; }
+  .icon-btn:hover { background: var(--surface2); }
+  .icon-btn.edit { color: var(--blue); }
+  .icon-btn.del { color: var(--red); }
+  .icon-btn.toggle { color: var(--green); }
+  .icon-btn.toggle.unpaid { color: var(--amber); }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; font-weight: 700; color: var(--text2); padding: 9px 10px; border-bottom: 1px solid var(--border); background: var(--surface2); text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8f9fc; }
+  .qty-warn { color: var(--red); font-weight: 700; }
+  .qty-ok { color: var(--green); font-weight: 600; }
+  .inv-id { font-weight: 700; color: var(--blue); }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: var(--surface); border-radius: 14px; padding: 1.5rem; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
+  .modal-lg { max-width: 700px; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .modal-head h2 { font-size: 17px; font-weight: 700; }
+  .modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text3); line-height: 1; padding: 2px 4px; border-radius: 5px; }
+  .modal-close:hover { background: var(--surface2); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .12s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .inv-item-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; background: var(--surface2); padding: 10px; border-radius: var(--radius-sm); }
+  .inv-item-row .form-group { flex: 1; margin: 0; }
+  .inv-item-row .form-group:last-child { flex: none; }
+  .inv-items-list { margin-top: 12px; }
+  .inv-line { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .inv-line:last-child { border: none; }
+  .inv-line .name { flex: 2; font-weight: 500; }
+  .inv-line .num { flex: 1; text-align: right; color: var(--text2); }
+  .inv-line .amount { flex: 1; text-align: right; font-weight: 600; }
+  .total-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 12px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .total-row.grand { font-size: 16px; font-weight: 700; border-top: 1px solid var(--border2); margin-top: 7px; padding-top: 9px; color: var(--blue); }
+
+  /* VIEW INVOICE */
+  .inv-meta { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 14px 0; }
+  .inv-meta-block label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-weight: 700; display: block; margin-bottom: 3px; }
+  .inv-meta-block span { font-size: 14px; font-weight: 600; }
+  .bill-to { margin-bottom: 14px; }
+  .bill-to label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-weight: 700; display: block; margin-bottom: 4px; }
+  .bill-to .name { font-weight: 700; font-size: 15px; }
+  .bill-to .sub { font-size: 12px; color: var(--text2); }
+  .shop-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .shop-head .icon { width: 34px; height: 34px; background: linear-gradient(135deg,#1a6fb5,#c07b2a); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; color: #fff; z-index: 999; display: flex; align-items: center; gap: 8px; transform: translateY(100px); opacity: 0; transition: all .28s; pointer-events: none; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: #3b7d1e; }
+  #toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon"><i class="ti ti-bolt"></i></div>
+    <div>
+      <div class="logo-text">ElectroPlumb Shop</div>
+      <div class="logo-sub">Electrical &amp; Plumbing Management</div>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-btn active" data-tab="dashboard"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="nav-btn" data-tab="stock"><i class="ti ti-box"></i> Stock</button>
+    <button class="nav-btn" data-tab="invoices"><i class="ti ti-file-invoice"></i> Invoices</button>
+  </nav>
+  <button class="export-btn" onclick="exportExcel()"><i class="ti ti-table-export"></i> Export Excel</button>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-sub">Overview of your shop</div></div>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="dash-grid">
+      <div class="card">
+        <div class="card-title"><i class="ti ti-alert-triangle" style="color:var(--red)"></i> Low Stock Items</div>
+        <div id="low-stock-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-invoice" style="color:var(--amber)"></i> Recent Invoices</div>
+        <div id="recent-inv-list"></div>
+      </div>
+    </div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="page" id="page-stock">
+    <div class="page-header">
+      <div><div class="page-title">Stock</div><div class="page-sub" id="stock-sub"></div></div>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search-input" id="stock-search" placeholder="Search products…" oninput="renderStock()" />
+        <button class="filter-btn active-all" data-filter="All" onclick="setFilter(this,'All')">All</button>
+        <button class="filter-btn" data-filter="Electrical" onclick="setFilter(this,'Electrical')"><i class="ti ti-bolt"></i> Electrical</button>
+        <button class="filter-btn" data-filter="Plumbing" onclick="setFilter(this,'Plumbing')"><i class="ti ti-droplet"></i> Plumbing</button>
+      </div>
+      <button class="btn btn-primary" onclick="openAddStock()"><i class="ti ti-plus"></i> Add Product</button>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Product Name</th><th>Category</th><th>Stock</th><th>Unit</th>
+            <th>Price (₹)</th><th>Stock Value</th><th>Supplier</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="stock-tbody"></tbody>
+        </table>
+        <div id="stock-empty" class="empty" style="display:none"><i class="ti ti-search"></i>No products found</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVOICES -->
+  <div class="page" id="page-invoices">
+    <div class="page-header">
+      <div><div class="page-title">Invoices</div><div class="page-sub" id="inv-sub"></div></div>
+      <button class="btn btn-primary" onclick="openNewInv()"><i class="ti ti-plus"></i> New Invoice</button>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Invoice #</th><th>Date</th><th>Customer</th><th>Phone</th>
+            <th>Items</th><th>Total (₹)</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+        <div id="inv-empty" class="empty" style="display:none"><i class="ti ti-file-off"></i>No invoices yet</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- STOCK MODAL -->
+<div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeStockModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="stock-modal-title">Add Product</h2>
+      <button class="modal-close" onclick="closeStockModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Product Name *</label><input id="sf-name" placeholder="e.g. PVC Pipe 1/2 inch" /></div>
+      <div class="form-group"><label>Category</label>
+        <select id="sf-cat"><option>Electrical</option><option>Plumbing</option></select></div>
+      <div class="form-group"><label>Unit</label>
+        <select id="sf-unit"><option>Piece</option><option>Meter</option><option>Box</option><option>Set</option><option>Kg</option><option>Roll</option></select></div>
+      <div class="form-group"><label>Quantity</label><input type="number" id="sf-qty" min="0" value="0" /></div>
+      <div class="form-group"><label>Unit Price (₹)</label><input type="number" id="sf-price" min="0" value="0" /></div>
+      <div class="form-group"><label>Min Stock Alert</label><input type="number" id="sf-min" min="0" value="10" /></div>
+      <div class="form-group"><label>Supplier</label><input id="sf-supplier" placeholder="Supplier name" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeStockModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStock()"><i class="ti ti-check"></i> Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW INVOICE MODAL -->
+<div class="modal-overlay" id="inv-modal" style="display:none" onclick="if(event.target===this)closeInvModal()">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h2>New Invoice</h2>
+      <button class="modal-close" onclick="closeInvModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Customer Name *</label><input id="if-customer" placeholder="Customer or company name" /></div>
+      <div class="form-group"><label>Phone</label><input id="if-phone" placeholder="Mobile number" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="if-date" /></div>
+      <div class="form-group"><label>Status</label>
+        <select id="if-status"><option>Pending</option><option>Paid</option><option>Cancelled</option></select></div>
+      <div class="form-group full"><label>Notes</label><input id="if-notes" placeholder="Site address, job reference…" /></div>
+    </div>
+
+    <div style="margin-top:16px; background:var(--surface2); border-radius:var(--radius-sm); padding:12px 14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Add Items</div>
+      <div class="inv-item-row">
+        <div class="form-group" style="flex:3">
+          <label>Product</label>
+          <select id="if-product"></select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:70px">
+          <label>Qty</label>
+          <input type="number" id="if-qty" value="1" min="1" style="width:100%" />
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="addInvItem()"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="inv-items-preview" class="inv-items-list" style="display:none">
+      <table style="margin-top:12px; width:100%">
+        <thead><tr>
+          <th>Product</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th>
+        </tr></thead>
+        <tbody id="inv-items-tbody"></tbody>
+      </table>
+      <div class="total-box">
+        <div class="total-row"><span>Subtotal</span><span id="inv-subtotal">₹0</span></div>
+        <div class="total-row grand"><span>Total (incl. 18% GST)</span><span id="inv-grand">₹0</span></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeInvModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveInvoice()"><i class="ti ti-file-check"></i> Create Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW INVOICE MODAL -->
+<div class="modal-overlay" id="view-modal" style="display:none" onclick="if(event.target===this)closeViewModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="shop-head">
+        <div class="icon"><i class="ti ti-bolt"></i></div>
+        <div>
+          <div style="font-weight:700;font-size:15px">ElectroPlumb Shop</div>
+          <div style="font-size:11px;color:var(--text2)">Thoothukudi, Tamil Nadu</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeViewModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="view-inv-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="view-toggle-btn" onclick="viewToggleStatus()"></button>
+      <button class="btn btn-primary" onclick="closeViewModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+let stock = [
+  { id:1, name:"PVC Pipe 1/2 inch",   category:"Plumbing",   qty:120, price:45,  unit:"Meter", minStock:20, supplier:"AquaSupply" },
+  { id:2, name:"MCB 32A Single Pole",  category:"Electrical", qty:45,  price:185, unit:"Piece", minStock:10, supplier:"Elmex India" },
+  { id:3, name:"Copper Wire 2.5mm",    category:"Electrical", qty:200, price:62,  unit:"Meter", minStock:50, supplier:"Polycab" },
+  { id:4, name:"Ball Valve 3/4 inch",  category:"Plumbing",   qty:30,  price:220, unit:"Piece", minStock:10, supplier:"Zoloto" },
+  { id:5, name:"Switch Board 6A",      category:"Electrical", qty:8,   price:95,  unit:"Piece", minStock:15, supplier:"Anchor" },
+  { id:6, name:"CPVC Elbow 1 inch",    category:"Plumbing",   qty:150, price:18,  unit:"Piece", minStock:30, supplier:"Astral" },
+  { id:7, name:"LED Bulb 9W",          category:"Electrical", qty:60,  price:120, unit:"Piece", minStock:20, supplier:"Philips" },
+  { id:8, name:"Gate Valve 1 inch",    category:"Plumbing",   qty:5,   price:310, unit:"Piece", minStock:8,  supplier:"Zoloto" },
+];
+
+let invoices = [
+  { id:"INV-001", date:"2026-05-20", customer:"Ravi Constructions", phone:"9876543210", status:"Paid",    notes:"Site: Thoothukudi Main Road",
+    items:[ {productId:3,name:"Copper Wire 2.5mm",qty:50,price:62,unit:"Meter"}, {productId:2,name:"MCB 32A Single Pole",qty:5,price:185,unit:"Piece"} ] },
+  { id:"INV-002", date:"2026-05-22", customer:"Muthu Plumbers",     phone:"9845001234", status:"Pending", notes:"",
+    items:[ {productId:1,name:"PVC Pipe 1/2 inch",qty:30,price:45,unit:"Meter"}, {productId:4,name:"Ball Valve 3/4 inch",qty:8,price:220,unit:"Piece"} ] },
+];
+
+let nextInvNum = 3;
+let stockEditId = null;
+let catFilter = "All";
+let invItems = [];
+let viewingInvId = null;
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+const fmt = n => Number(n).toLocaleString("en-IN");
+const invTotal = inv => inv.items.reduce((a,i) => a + i.qty * i.price, 0);
+const isLow = s => s.qty <= s.minStock;
+
+function toast(msg, type="success") {
+  const el = document.getElementById("toast");
+  el.textContent = ""; // clear
+  const ico = document.createElement("i");
+  ico.className = type === "error" ? "ti ti-x" : "ti ti-check";
+  el.appendChild(ico);
+  el.append(" " + msg);
+  el.className = "show " + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = "", 2800);
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("page-" + btn.dataset.tab).classList.add("active");
+    renderAll();
+  });
+});
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const lowItems = stock.filter(isLow);
+  const totalStockVal = stock.reduce((a,s) => a + s.qty * s.price, 0);
+  const totalInvVal = invoices.reduce((a,inv) => a + invTotal(inv), 0);
+
+  // stats
+  const sg = document.getElementById("stats-grid");
+  sg.innerHTML = [
+    { label:"Total Products", val: stock.length, icon:"ti-box", accent:"#1a6fb5" },
+    { label:"Low Stock Alerts", val: lowItems.length, icon:"ti-alert-triangle", accent:"#c0392b" },
+    { label:"Stock Value", val:"₹"+fmt(totalStockVal), icon:"ti-chart-bar", accent:"#3b7d1e" },
+    { label:"Total Invoices", val: invoices.length, icon:"ti-file-invoice", accent:"#c07b2a" },
+  ].map(s => `
+    <div class="stat-card" style="--accent:${s.accent}">
+      <i class="ti ${s.icon} stat-icon" style="color:${s.accent}" aria-hidden="true"></i>
+      <div class="stat-val">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`).join("");
+
+  // low stock
+  const ll = document.getElementById("low-stock-list");
+  if (!lowItems.length) {
+    ll.innerHTML = `<div class="empty"><i class="ti ti-circle-check" style="color:var(--green)"></i>All items well stocked!</div>`;
+  } else {
+    ll.innerHTML = lowItems.map(s => `
+      <div class="list-item">
+        <div><div class="list-item-name">${s.name}</div><div class="list-item-sub">${s.supplier}</div></div>
+        <div class="list-item-right">
+          <span class="badge badge-${s.category.toLowerCase()}">${s.category}</span>
+          <div style="font-size:12px;color:var(--red);font-weight:700;margin-top:3px">${s.qty} / min ${s.minStock} ${s.unit}</div>
+        </div>
+      </div>`).join("");
+  }
+
+  // recent invoices
+  const rl = document.getElementById("recent-inv-list");
+  if (!invoices.length) {
+    rl.innerHTML = `<div class="empty"><i class="ti ti-file-off"></i>No invoices yet</div>`;
+  } else {
+    rl.innerHTML = invoices.slice(0,5).map(inv => `
+      <div class="list-item" style="cursor:pointer" onclick="openViewInv('${inv.id}')">
+        <div>
+          <div class="list-item-name inv-id">${inv.id}</div>
+          <div class="list-item-sub">${inv.customer} · ${inv.date}</div>
+        </div>
+        <div class="list-item-right">
+          <div style="font-size:13px;font-weight:700">₹${fmt(invTotal(inv))}</div>
+          <span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span>
+        </div>
+      </div>`).join("");
+  }
+
+  // category cards
+  const cg = document.getElementById("cat-grid");
+  cg.innerHTML = ["Electrical","Plumbing"].map(cat => {
+    const items = stock.filter(s => s.category === cat);
+    const val = items.reduce((a,s) => a + s.qty * s.price, 0);
+    const isE = cat === "Electrical";
+    const bg = isE ? "#e6f1fb" : "#faeeda";
+    const txt = isE ? "#0c447c" : "#633806";
+    const ico = isE ? "ti-bolt" : "ti-droplet";
+    return `
+      <div class="cat-card" style="background:${bg}">
+        <div class="cat-head" style="color:${txt}"><i class="ti ${ico}"></i>${cat}</div>
+        <div class="cat-nums">
+          <div><div class="cat-num-val" style="color:${txt}">${items.length}</div><div class="cat-num-label" style="color:${txt}">Products</div></div>
+          <div><div class="cat-num-val" style="color:${txt}">₹${fmt(val)}</div><div class="cat-num-label" style="color:${txt}">Stock Value</div></div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// ── STOCK ─────────────────────────────────────────────────────────────────────
+function setFilter(btn, f) {
+  catFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => {
+    b.className = "filter-btn";
+    if (b.dataset.filter === f) b.className += f === "All" ? " active-all" : f === "Electrical" ? " active-elec" : " active-plumb";
+  });
+  renderStock();
+}
+
+function renderStock() {
+  const q = document.getElementById("stock-search").value.toLowerCase();
+  const filtered = stock.filter(s => {
+    const matchCat = catFilter === "All" || s.category === catFilter;
+    const matchQ = s.name.toLowerCase().includes(q) || s.supplier.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  document.getElementById("stock-sub").textContent = `${stock.length} products · ${stock.filter(isLow).length} low stock`;
+
+  const tbody = document.getElementById("stock-tbody");
+  const empty = document.getElementById("stock-empty");
+  if (!filtered.length) { tbody.innerHTML = ""; empty.style.display = ""; return; }
+  empty.style.display = "none";
+  tbody.innerHTML = filtered.map(s => `
+    <tr style="${isLow(s) ? 'background:#fff8f8' : ''}">
+      <td><strong>${s.name}</strong></td>
+      <td><span class="badge badge-${s.category.toLowerCase()}">${s.category}</span></td>
+      <td>
+        <span class="${isLow(s) ? 'qty-warn' : 'qty-ok'}">${s.qty}</span>
+        ${isLow(s) ? '<span class="badge badge-low">LOW</span>' : ''}
+        <div style="font-size:10px;color:var(--text3)">min ${s.minStock}</div>
+      </td>
+      <td>${s.unit}</td>
+      <td>₹${fmt(s.price)}</td>
+      <td style="font-weight:600">₹${fmt(s.qty * s.price)}</td>
+      <td>${s.supplier}</td>
+      <td><span class="badge ${isLow(s) ? 'badge-pending' : 'badge-ok'}">${isLow(s) ? 'Low' : 'OK'}</span></td>
+      <td>
+        <button class="icon-btn edit" onclick="openEditStock(${s.id})" title="Edit"><i class="ti ti-edit"></i></button>
+        <button class="icon-btn del" onclick="deleteStock(${s.id})" title="Delete"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`).join("");
+}
+
+function openAddStock() {
+  stockEditId = null;
+  document.getElementById("stock-modal-title").textContent = "Add Product";
+  document.getElementById("sf-name").value = "";
+  document.getElementById("sf-cat").value = "Electrical";
+  document.getElementById("sf-qty").value = 0;
+  document.getElementById("sf-price").value = 0;
+  document.getElementById("sf-unit").value = "Piece";
+  document.getElementById("sf-min").value = 10;
+  document.getElementById("sf-supplier").value = "";
+  document.getElementById("stock-modal").style.display = "flex";
+}
+
+function openEditStock(id) {
+  const s = stock.find(x => x.id === id);
+  stockEditId = id;
+  document.getElementById("stock-modal-title").textContent = "Edit Product";
+  document.getElementById("sf-name").value = s.name;
+  document.getElementById("sf-cat").value = s.category;
+  document.getElementById("sf-qty").value = s.qty;
+  document.getElementById("sf-price").value = s.price;
+  document.getElementById("sf-unit").value = s.unit;
+  document.getElementById("sf-min").value = s.minStock;
+  document.getElementById("sf-supplier").value = s.supplier;
+  document.getElementById("stock-modal").style.display = "flex";
+}
+
+function closeStockModal() { document.getElementById("stock-modal").style.display = "none"; }
+
+function saveStock() {
+  const name = document.getElementById("sf-name").value.trim();
+  if (!name) { toast("Product name required", "error"); return; }
+  const obj = {
+    name, category: document.getElementById("sf-cat").value,
+    qty: +document.getElementById("sf-qty").value,
+    price: +document.getElementById("sf-price").value,
+    unit: document.getElementById("sf-unit").value,
+    minStock: +document.getElementById("sf-min").value,
+    supplier: document.getElementById("sf-supplier").value.trim(),
+  };
+  if (stockEditId) {
+    stock = stock.map(s => s.id === stockEditId ? { ...s, ...obj } : s);
+    toast("Product updated!");
+  } else {
+    stock.push({ id: Date.now(), ...obj });
+    toast("Product added!");
+  }
+  closeStockModal();
+  renderAll();
+}
+
+function deleteStock(id) {
+  if (!confirm("Delete this product?")) return;
+  stock = stock.filter(s => s.id !== id);
+  toast("Product deleted", "error");
+  renderAll();
+}
+
+// ── INVOICES ──────────────────────────────────────────────────────────────────
+function renderInvoices() {
+  const totalInvVal = invoices.reduce((a,inv) => a + invTotal(inv), 0);
+  document.getElementById("inv-sub").textContent = `${invoices.length} invoices · ₹${fmt(totalInvVal)} total`;
+
+  const tbody = document.getElementById("inv-tbody");
+  const empty = document.getElementById("inv-empty");
+  if (!invoices.length) { tbody.innerHTML = ""; empty.style.display = ""; return; }
+  empty.style.display = "none";
+  tbody.innerHTML = invoices.map(inv => `
+    <tr>
+      <td class="inv-id">${inv.id}</td>
+      <td>${inv.date}</td>
+      <td>${inv.customer}</td>
+      <td>${inv.phone || "—"}</td>
+      <td>${inv.items.length} item${inv.items.length !== 1 ? "s" : ""}</td>
+      <td style="font-weight:700">₹${fmt(invTotal(inv))}</td>
+      <td><span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span></td>
+      <td>
+        <button class="icon-btn edit" onclick="openViewInv('${inv.id}')" title="View"><i class="ti ti-eye"></i></button>
+        <button class="icon-btn toggle ${inv.status === 'Paid' ? 'unpaid' : ''}" onclick="toggleInvStatus('${inv.id}')" title="Toggle status">
+          <i class="ti ${inv.status === 'Paid' ? 'ti-clock' : 'ti-circle-check'}"></i></button>
+        <button class="icon-btn del" onclick="deleteInv('${inv.id}')" title="Delete"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`).join("");
+}
+
+function toggleInvStatus(id) {
+  invoices = invoices.map(inv => inv.id === id ? { ...inv, status: inv.status === "Paid" ? "Pending" : "Paid" } : inv);
+  renderAll();
+  toast("Status updated!");
+}
+
+function deleteInv(id) {
+  if (!confirm("Delete this invoice?")) return;
+  invoices = invoices.filter(inv => inv.id !== id);
+  toast("Invoice deleted", "error");
+  renderAll();
+}
+
+// ── NEW INVOICE MODAL ─────────────────────────────────────────────────────────
+function openNewInv() {
+  invItems = [];
+  document.getElementById("if-customer").value = "";
+  document.getElementById("if-phone").value = "";
+  document.getElementById("if-date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("if-status").value = "Pending";
+  document.getElementById("if-notes").value = "";
+  document.getElementById("if-qty").value = 1;
+  // fill product select
+  const sel = document.getElementById("if-product");
+  sel.innerHTML = '<option value="">— Select Product —</option>' +
+    stock.map(p => `<option value="${p.id}">${p.name} (₹${p.price}/${p.unit})</option>`).join("");
+  refreshInvPreview();
+  document.getElementById("inv-modal").style.display = "flex";
+}
+
+function closeInvModal() { document.getElementById("inv-modal").style.display = "none"; }
+
+function addInvItem() {
+  const pid = +document.getElementById("if-product").value;
+  const qty = +document.getElementById("if-qty").value;
+  if (!pid) { toast("Select a product", "error"); return; }
+  if (qty <= 0) { toast("Qty must be > 0", "error"); return; }
+  const prod = stock.find(s => s.id === pid);
+  const exists = invItems.find(i => i.productId === pid);
+  if (exists) { exists.qty += qty; }
+  else { invItems.push({ productId: pid, name: prod.name, qty, price: prod.price, unit: prod.unit }); }
+  document.getElementById("if-product").value = "";
+  document.getElementById("if-qty").value = 1;
+  refreshInvPreview();
+}
+
+function removeInvItem(pid) {
+  invItems = invItems.filter(i => i.productId !== pid);
+  refreshInvPreview();
+}
+
+function refreshInvPreview() {
+  const preview = document.getElementById("inv-items-preview");
+  const tbody = document.getElementById("inv-items-tbody");
+  if (!invItems.length) { preview.style.display = "none"; return; }
+  preview.style.display = "";
+  tbody.innerHTML = invItems.map(it => `
+    <tr>
+      <td>${it.name}</td><td>${it.qty}</td><td>${it.unit}</td>
+      <td>₹${fmt(it.price)}</td>
+      <td style="font-weight:700">₹${fmt(it.qty * it.price)}</td>
+      <td><button class="icon-btn del" onclick="removeInvItem(${it.productId})"><i class="ti ti-x"></i></button></td>
+    </tr>`).join("");
+  const sub = invItems.reduce((a,i) => a + i.qty * i.price, 0);
+  document.getElementById("inv-subtotal").textContent = "₹" + fmt(sub);
+  document.getElementById("inv-grand").textContent = "₹" + (sub * 1.18).toLocaleString("en-IN", {maximumFractionDigits:2});
+}
+
+function saveInvoice() {
+  const customer = document.getElementById("if-customer").value.trim();
+  if (!customer) { toast("Customer name required", "error"); return; }
+  if (!invItems.length) { toast("Add at least one item", "error"); return; }
+  const id = "INV-" + String(nextInvNum).padStart(3,"0");
+  invoices.unshift({
+    id, customer,
+    phone: document.getElementById("if-phone").value.trim(),
+    date: document.getElementById("if-date").value,
+    status: document.getElementById("if-status").value,
+    notes: document.getElementById("if-notes").value.trim(),
+    items: [...invItems],
+  });
+  nextInvNum++;
+  closeInvModal();
+  renderAll();
+  toast(`Invoice ${id} created!`);
+}
+
+// ── VIEW INVOICE ──────────────────────────────────────────────────────────────
+function openViewInv(id) {
+  viewingInvId = id;
+  const inv = invoices.find(i => i.id === id);
+  const sub = invTotal(inv);
+  const gst = sub * 0.18;
+  const grand = sub + gst;
+
+  const content = document.getElementById("view-inv-content");
+  content.innerHTML = `
+    <div class="inv-meta">
+      <div class="inv-meta-block"><label>Invoice No</label><span class="inv-id">${inv.id}</span></div>
+      <div class="inv-meta-block"><label>Date</label><span>${inv.date}</span></div>
+      <div class="inv-meta-block"><label>Status</label><span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span></div>
+    </div>
+    <div class="bill-to">
+      <label>Bill To</label>
+      <div class="name">${inv.customer}</div>
+      ${inv.phone ? `<div class="sub">${inv.phone}</div>` : ""}
+      ${inv.notes ? `<div class="sub">${inv.notes}</div>` : ""}
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${inv.items.map(it => `
+            <tr>
+              <td>${it.name}</td>
+              <td>${it.qty} ${it.unit}</td>
+              <td>₹${fmt(it.price)}</td>
+              <td style="font-weight:700">₹${fmt(it.qty * it.price)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="total-box">
+      <div class="total-row"><span>Subtotal</span><span>₹${fmt(sub)}</span></div>
+      <div class="total-row"><span>GST 18%</span><span>₹${gst.toFixed(2)}</span></div>
+      <div class="total-row grand"><span>Total (incl. GST)</span><span>₹${grand.toLocaleString("en-IN",{maximumFractionDigits:2})}</span></div>
+    </div>`;
+
+  const toggleBtn = document.getElementById("view-toggle-btn");
+  toggleBtn.innerHTML = `<i class="ti ${inv.status === 'Paid' ? 'ti-clock' : 'ti-circle-check'}"></i> Mark as ${inv.status === 'Paid' ? 'Pending' : 'Paid'}`;
+  document.getElementById("view-modal").style.display = "flex";
+}
+
+function viewToggleStatus() {
+  toggleInvStatus(viewingInvId);
+  openViewInv(viewingInvId); // refresh
+}
+
+function closeViewModal() { document.getElementById("view-modal").style.display = "none"; }
+
+// ── EXCEL EXPORT ──────────────────────────────────────────────────────────────
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // Stock sheet
+  const stockData = stock.map(s => ({
+    "Product Name": s.name, "Category": s.category,
+    "Quantity": s.qty, "Unit": s.unit,
+    "Unit Price (₹)": s.price, "Min Stock": s.minStock,
+    "Stock Value (₹)": s.qty * s.price, "Supplier": s.supplier,
+    "Status": isLow(s) ? "Low Stock" : "OK"
+  }));
+  const ws1 = XLSX.utils.json_to_sheet(stockData);
+  ws1["!cols"] = [28,14,10,8,16,12,18,18,12].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, "Stock");
+
+  // Invoices sheet
+  const rows = [];
+  invoices.forEach(inv => {
+    inv.items.forEach((it,i) => {
+      rows.push({
+        "Invoice No": i===0 ? inv.id : "",
+        "Date": i===0 ? inv.date : "",
+        "Customer": i===0 ? inv.customer : "",
+        "Phone": i===0 ? inv.phone : "",
+        "Status": i===0 ? inv.status : "",
+        "Product": it.name,
+        "Qty": it.qty,
+        "Unit": it.unit,
+        "Rate (₹)": it.price,
+        "Amount (₹)": it.qty * it.price,
+        "Invoice Total (₹)": i===0 ? invTotal(inv) : "",
+        "Notes": i===0 ? inv.notes : "",
+      });
+    });
+  });
+  const ws2 = XLSX.utils.json_to_sheet(rows);
+  ws2["!cols"] = [12,12,22,14,10,26,6,8,10,12,18,24].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws2, "Invoices");
+
+  // Summary sheet
+  const totalStockVal = stock.reduce((a,s) => a + s.qty * s.price, 0);
+  const totalInvVal = invoices.reduce((a,inv) => a + invTotal(inv), 0);
+  const summary = [
+    { "Metric":"Total Products",           "Value": stock.length },
+    { "Metric":"Low Stock Items",          "Value": stock.filter(isLow).length },
+    { "Metric":"Total Stock Value (₹)",    "Value": totalStockVal },
+    { "Metric":"Total Invoices",           "Value": invoices.length },
+    { "Metric":"Paid Invoices",            "Value": invoices.filter(i=>i.status==="Paid").length },
+    { "Metric":"Total Invoice Value (₹)",  "Value": totalInvVal },
+    { "Metric":"Exported On",              "Value": new Date().toLocaleString("en-IN") },
+  ];
+  const ws3 = XLSX.utils.json_to_sheet(summary);
+  ws3["!cols"] = [{wch:26},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws3, "Summary");
+
+  XLSX.writeFile(wb, `ElectroPlumb_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("Excel file downloaded!");
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderDashboard();
+  renderStock();
+  renderInvoices();
+}
+
+renderAll();
+</script>
+</body>
+</html>
